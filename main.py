@@ -1,5 +1,6 @@
 import os
 import time
+import random
 
 import numpy as np
 import torch
@@ -20,6 +21,13 @@ if __name__ == "__main__":
     args.device = torch.device('cuda:' + str(args.device_id))
     args.use_amp = args.use_amp == 1
 
+    # seed everything
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    
     # path
     if not os.path.exists(args.image_path):
         os.mkdir(args.image_path)
