@@ -38,7 +38,7 @@ def parse_arguments():
     # others
     parser.add_argument('-s', '--seed', type=int, default=0, help="random seed")
     parser.add_argument('--local-rank', type=int, default=0, help='local rank for ddp settings')
-    parser.add_argument('--model_path', type=str, default='./saved_models/MRO_DM.h5', help="path to save or load the model")
+    parser.add_argument('--model_path', type=str, default='./saved_models/', help="path to save or load the model")
     parser.add_argument('--image_path', type=str, default='./saved_images/', help="path to save the images")
 
     return parser.parse_args()
