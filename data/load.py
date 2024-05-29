@@ -12,11 +12,6 @@ def load_data(data_path):
     name_mapping = np.genfromtxt(f'{data_path}/name_mapping.csv', delimiter=',', dtype=None, encoding='utf8')
     subj_ids, labels = name_mapping[1:, -1], name_mapping[1:, 0]
     labels = label_binarize(np.array(labels == 'HGG', dtype=int), classes=[0, 1, np.inf])[:, :-1]
-
-    n = 4
-    subj_ids = np.array(list(subj_ids)[:n // 2] + list(subj_ids)[-n // 2:])
-    labels = np.array(list(labels)[:n // 2] + list(labels)[-n // 2:])
-
     subjs = []
     for subj_id, label in zip(subj_ids, labels):
         try:
