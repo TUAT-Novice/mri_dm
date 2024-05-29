@@ -35,7 +35,7 @@ if __name__ == "__main__":
         os.mkdir(args.model_path)
 
     # ddp
-    dist.init_process_group(backend='gloo', rank=args.device_id)
+    dist.init_process_group(backend='nccl', rank=args.device_id)
 
     # dataset
     transform = [tio.ToCanonical(), tio.CropOrPad(target_shape=(192, 192, 144))]
