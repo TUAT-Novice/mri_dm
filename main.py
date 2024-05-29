@@ -112,7 +112,7 @@ if __name__ == "__main__":
                 t = torch.randint(0, args.timestep, (batch_size,), device=args.device).long()  # sample t uniformally
                 # forward
                 loss = gaussian_diffusion.train_losses(model, images, t, labels, batch_mask)
-                if (step + 1) % max(len_data // 10, 1) == 0:
+                if (step + 1) % max(len_data // 10, 1) == 0 or (step + 1) == len_data:
                     time_end = time.time()
                     print("Epoch{}/{}\t  Step{}/{}\t Loss {:.4f}\t Time: {:.2f}".format(epoch + 1, args.epoch, step + 1, len_data, loss.item(), time_end - time_start))
                     time_start = time_end
