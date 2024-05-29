@@ -164,7 +164,6 @@ class GaussianDiffusion:
             model,
             image_size,
             batch_size=8,
-            channels=3,
             ddim_timesteps=50,
             n_class=10,
             w=2,
@@ -201,7 +200,7 @@ class GaussianDiffusion:
             cur_y = torch.ones(batch_size).long().to(device) * int(mode)
 
         # start from pure noise (for each example in the batch)
-        sample_img = torch.randn((batch_size, channels, image_size, image_size), device=device)
+        sample_img = torch.randn((batch_size,) + image_size, device=device)
         seq_img = [sample_img.cpu().numpy()]
 
         for i in tqdm(reversed(range(0, ddim_timesteps)), desc='sampling loop time step', total=ddim_timesteps):
