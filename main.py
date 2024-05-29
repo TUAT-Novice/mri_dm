@@ -99,7 +99,7 @@ if __name__ == "__main__":
                 batch_size = images.shape[0]
                 images = images.to(args.device, non_blocking=True)
                 labels = labels.to(args.device, non_blocking=True)
-                batch_mask = (torch.rand(args.batch_size) > args.p_uncound).int().to(args.device)  # random mask for modality labels
+                batch_mask = (torch.rand(batch_size) > args.p_uncound).int().to(args.device)  # random mask for modality labels
                 t = torch.randint(0, args.timestep, (batch_size,), device=args.device).long()  # sample t uniformally
                 # forward
                 loss = gaussian_diffusion.train_losses(model, images, t, labels, batch_mask)
