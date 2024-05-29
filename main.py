@@ -98,6 +98,7 @@ if __name__ == "__main__":
     for epoch in range(args.epoch):
         model.train()
         with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=args.use_amp):
+            time_start = time.time()
             for step, subjs_batch in enumerate(data_loader):
                 images, _, _ = load_subjs_batch(subjs_batch)
                 B, M, H, W, D = images.shape
@@ -113,7 +114,8 @@ if __name__ == "__main__":
                 loss = gaussian_diffusion.train_losses(model, images, t, labels, batch_mask)
                 if (step + 1) % max(len_data // 10, 1) == 0:
                     time_end = time.time()
-                    print("Epoch{}/{}\t  Step{}/{}\t Loss {:.4f}".format(epoch + 1, args.epoch, step + 1, len_data, loss.item()))
+                    print("Epoch{}/{}\t  Step{}/{}\t Loss {:.4f}\t Time: {:.2f}".format(epoch + 1, args.epoch, step + 1, len_data, loss.item(), time_end - time_start))
+                    time_start = time_end
                 scaler.scale(loss).backward()
                 if (step + 1) % args.accumulate_step == 0 or step == len_data - 1:
                     scaler.step(optimizer)
