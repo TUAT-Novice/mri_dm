@@ -22,7 +22,8 @@ if __name__ == "__main__":
     args.channel_mult = ast.literal_eval(args.channel_mult)
     args.device = torch.device('cuda:' + str(args.device_id))
     args.use_amp = args.use_amp == 1
-
+    print(args)
+    
     # seed everything
     random.seed(args.seed)
     np.random.seed(args.seed)
