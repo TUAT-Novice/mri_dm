@@ -57,10 +57,10 @@ if __name__ == "__main__":
     # model
     model = UnetModel(
         in_channels=1,
-        model_channels=96,
+        model_channels=64,
         out_channels=1,
-        channel_mult=(1, 2, 2),
-        attention_resolutions=[],
+        channel_mult=(1, 2, 2, 2, 2),
+        attention_resolutions=[16, ],
         num_mod=args.num_mod
     )
     if args.model_path and os.path.exists(args.model_path) and args.model_path.endswith('.h5'):
