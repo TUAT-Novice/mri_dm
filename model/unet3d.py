@@ -152,8 +152,8 @@ class Downsample(nn.Module):
         if use_conv:
             self.op = nn.Conv3d(channels, channels, kernel_size=3, stride=2, padding=1)
         else:
-            # self.op = nn.AvgPool3d(stride=2)
-            self.op = nn.MaxPool3d(stride=2)
+            # self.op = nn.AvgPool3d(kernel_size=2, stride=2)
+            self.op = nn.MaxPool3d(kernel_size=2, stride=2)
 
     def forward(self, x):
         return self.op(x)
