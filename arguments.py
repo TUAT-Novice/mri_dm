@@ -6,7 +6,7 @@ def parse_arguments():
     # data
     parser.add_argument('--data-path', type=str, required=True, help="path to the data files")
     parser.add_argument('--n-workers', type=int, default=8, help="number of workers in data loader")
-    parser.add_argument('--mri_ratio', type=float, default=2, help="ratio for mri down-sampling")
+    parser.add_argument('--mri_ratio', type=float, default=1.5, help="ratio for mri down-sampling")
 
     # diffusion model
     parser.add_argument('-t', '--timestep', type=int, default=1000, help="number of timesteps for diffusion process")
