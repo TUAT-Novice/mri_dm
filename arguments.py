@@ -21,7 +21,7 @@ def parse_arguments():
     parser.add_argument('--num_mod', type=int, default=4, help="number of modalities")
 
     # training
-    parser.add_argument('-n', '--epoch', type=int, default=100, help="maximum number of epochs to train on")
+    parser.add_argument('-n', '--epoch', type=int, default=300, help="maximum number of epochs to train on")
     parser.add_argument('-b', '--batch-size', type=int, default=1, help="batch size fo training")
     parser.add_argument('--lr', type=float, default=0.0001, help="peak value for learning rate")
     parser.add_argument('-p', '--p_uncound', type=float, default=0.2, help="Probability of shielding modalities")
