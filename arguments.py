@@ -13,11 +13,11 @@ def parse_arguments():
     parser.add_argument('-sche', '--beta_schedule', type=str, choices={'linear', 'sigmoid', 'cosine'}, default='cosine', help="diffusion scheduler")
 
     # Unet model
-    parser.add_argument('-d', '--dim', type=int, default=64, help="number of feature dimensions")
+    parser.add_argument('-d', '--dim', type=int, default=48, help="number of feature dimensions")
     parser.add_argument('--num_heads', type=int, default=4, help="number of attention heads")
-    parser.add_argument('--attn_res', type=str, default='(8, 16)', help='where the attention layers placed in the Unet.'
+    parser.add_argument('--attn_res', type=str, default='(8,)', help='where the attention layers placed in the Unet.'
                                                                         'We have 4 blocks, the resolution is (1, 2, 4, 8), respectively')
-    parser.add_argument('--channel_mult', type=str, default='(2, 2, 2, 2)', help='multiple ratio of channels for 4 blocks in Unet')
+    parser.add_argument('--channel_mult', type=str, default='(2, 2, 2)', help='multiple ratio of channels for 4 blocks in Unet')
     parser.add_argument('--num_mod', type=int, default=4, help="number of modalities")
 
     # training
