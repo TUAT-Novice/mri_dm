@@ -99,7 +99,6 @@ if __name__ == "__main__":
     # train
     len_data = len(data_loader)
     for epoch in range(args.epoch):
-        model.train()
         with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=args.use_amp):
             time_start = time.time()
             for step, subjs_batch in enumerate(data_loader):
@@ -126,30 +125,30 @@ if __name__ == "__main__":
                     scaler.update()
                     optimizer.zero_grad(set_to_none=True)
         if (epoch + 1) % 10 == 0:
-            model.eval()
-            # generate
-            n_sample = 4
-            ddim_step = 50
-            ddim_all = []
-            for i in range(n_sample):
-                ddims = gaussian_diffusion.ddim_sample(model, image_size=(1, H, W, D), batch_size=args.num_mod, ddim_timesteps=ddim_step,
-                                                       n_class=args.num_mod, w=2.0, mode='all', ddim_discr_method='quad', ddim_eta=0.0,
-                                                       clip_denoised=False)
-                ddim_all.append(np.concatenate([np.expand_dims(d, axis=0) for d in ddims], axis=0))  # (ddim_step + 1, num_mod, 1, H, W, D)
-            ddim_all = np.concatenate([np.expand_dims(d, axis=0) for d in ddim_all], axis=0)  # (n_sample, ddim_step + 1, num_mod, 1, H, W, D)
-            ddim_all = np.swapaxes(ddim_all, 0, 1)  # (ddim_step + 1, n_sample, num_mod, 1, H, W, D)
-            medium_axis = D // 2
-            imgs = ddim_all[-1].reshape(n_sample, args.num_mod, H, W, D)[..., medium_axis] # (ddim_step + 1, n_sample, num_mod, 1, H, W)
-            # plot
-            fig = plt.figure(figsize=(12, 5), constrained_layout=True)
-            gs = fig.add_gridspec(n_sample, args.num_mod)
-            for n_row in range(n_sample):
-                for n_col in range(args.num_mod):
-                    f_ax = fig.add_subplot(gs[n_row, n_col])
-                    f_ax.imshow((imgs[n_row, n_col] + 1.0) * 255 / 2, cmap="gray")
-                    f_ax.axis("off")
-            plt.savefig(os.path.join(args.image_path, f'DDIM_w={2.0}_all.png'))
-            torch.save(model, args.model_path + f'mri_dm_epoch={epoch}.h5')
-        
+            with torch.no_grad():
+                # generate
+                n_sample = 4
+                ddim_step = 50
+                ddim_all = []
+                for i in range(n_sample):
+                    ddims = gaussian_diffusion.ddim_sample(model, image_size=(1, H, W, D), batch_size=args.num_mod, ddim_timesteps=ddim_step,
+                                                           n_class=args.num_mod, w=2.0, mode='all', ddim_discr_method='quad', ddim_eta=0.0,
+                                                           clip_denoised=False)
+                    ddim_all.append(np.concatenate([np.expand_dims(d, axis=0) for d in ddims], axis=0))  # (ddim_step + 1, num_mod, 1, H, W, D)
+                ddim_all = np.concatenate([np.expand_dims(d, axis=0) for d in ddim_all], axis=0)  # (n_sample, ddim_step + 1, num_mod, 1, H, W, D)
+                ddim_all = np.swapaxes(ddim_all, 0, 1)  # (ddim_step + 1, n_sample, num_mod, 1, H, W, D)
+                medium_axis = D // 2
+                imgs = ddim_all[-1].reshape(n_sample, args.num_mod, H, W, D)[..., medium_axis] # (ddim_step + 1, n_sample, num_mod, 1, H, W)
+                # plot
+                fig = plt.figure(figsize=(12, 5), constrained_layout=True)
+                gs = fig.add_gridspec(n_sample, args.num_mod)
+                for n_row in range(n_sample):
+                    for n_col in range(args.num_mod):
+                        f_ax = fig.add_subplot(gs[n_row, n_col])
+                        f_ax.imshow((imgs[n_row, n_col] + 1.0) * 255 / 2, cmap="gray")
+                        f_ax.axis("off")
+                plt.savefig(os.path.join(args.image_path, f'DDIM_w={2.0}_all.png'))
+                torch.save(model, args.model_path + f'mri_dm_epoch={epoch}.h5')
+            
         if (epoch + 1) == args.epoch:
             torch.save(model, args.model_path + 'mri_dm_last.h5')
