@@ -152,7 +152,8 @@ class Downsample(nn.Module):
         if use_conv:
             self.op = nn.Conv3d(channels, channels, kernel_size=3, stride=2, padding=1)
         else:
-            self.op = nn.AvgPool3d(stride=2)
+            # self.op = nn.AvgPool3d(stride=2)
+            self.op = nn.MaxPool3d(stride=2)
 
     def forward(self, x):
         return self.op(x)
@@ -167,7 +168,7 @@ class UnetModel(nn.Module):
                  attention_resolutions=(8, 16),
                  dropout=0,
                  channel_mult=(1, 2, 2, 2),
-                 conv_resample=True,
+                 conv_resample=False,
                  num_heads=4,
                  num_mod=10
                  ):
