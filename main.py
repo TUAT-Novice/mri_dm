@@ -18,6 +18,8 @@ from model.diffusion_model import GaussianDiffusion
 if __name__ == "__main__":
     args = parse_arguments()
     args.device_id = args.gpus = args.local_rank
+    args.attn_res = ast.literal_eval(args.attn_res)
+    args.channel_mult = ast.literal_eval(args.channel_mult)
     args.device = torch.device('cuda:' + str(args.device_id))
     args.use_amp = args.use_amp == 1
 
@@ -57,10 +59,10 @@ if __name__ == "__main__":
     # model
     model = UnetModel(
         in_channels=1,
-        model_channels=64,
+        model_channels=args.dim,
         out_channels=1,
-        channel_mult=(1, 2, 2, 2, 2),
-        attention_resolutions=[16, ],
+        channel_mult=args.channel_mult,
+        attention_resolutions=args.attn_res,
         num_mod=args.num_mod
     )
     if args.model_path and os.path.exists(args.model_path) and args.model_path.endswith('.h5'):
