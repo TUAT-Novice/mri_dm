@@ -106,9 +106,8 @@ if __name__ == "__main__":
                 images, _, _ = load_subjs_batch(subjs_batch)
                 B, M, H, W, D = images.shape
                 assert M == args.num_mod, f"Except number of modalities args.num_mod = {args.num_mod}, but get {M}"
-                labels = torch.randint(size=(B,), low=0, high=num_mod).unsqueeze(1)
-                index = labels[:, :, None, None, None].repeat(1, 1, 2)
-                index = index.repeat(1, 1, H, W, D)
+                labels = torch.randint(size=(B,), low=0, high=args.num_mod).unsqueeze(1)
+                index = labels[:, :, None, None, None].repeat(1, 1, H, W, D)
                 images = torch.gather(images, 1, index)
                 batch_size = images.shape[0]
                 images = images.to(args.device, non_blocking=True)
