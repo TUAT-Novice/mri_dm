@@ -3,8 +3,6 @@ import torch.nn as nn
 import math
 from abc import abstractmethod
 
-import torch.nn.functional as F
-
 
 def timestep_embedding(timesteps, dim, max_period=10000):
     """
@@ -40,7 +38,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
     A sequential module that passes timestep embeddings to the children that
     support it as an extra input.
     """
-    def forward(self, x, t_emb, c_emb, mask):
+    def forward(self, x, t_emb=None, c_emb=None, mask=None):
         for layer in self:
             if (isinstance(layer, TimestepBlock)):
                 x = layer(x, t_emb, c_emb, mask)
@@ -131,45 +129,52 @@ class AttentionBlock(nn.Module):
 
 # upsample
 class Upsample(nn.Module):
-    def __init__(self, channels, use_conv):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.use_conv = use_conv
-        if use_conv:
-            self.conv = nn.Conv3d(channels, channels, kernel_size=3, padding=1)
+        mid_channels = out_channels
+        self.up = nn.ConvTranspose3d(in_channels, in_channels, kernel_size=2, stride=2) # nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.conv = nn.Sequential(
+            nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(mid_channels),
+            nn.SiLU(),
+            nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.SiLU()
+        )
 
     def forward(self, x):
-        x = F.interpolate(x, scale_factor=2, mode="nearest")
-        if self.use_conv:
-            x = self.conv(x)
-        return x
+        return self.conv(self.up(x))
 
 
 # downsample
 class Downsample(nn.Module):
-    def __init__(self, channels, use_conv):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.use_conv = use_conv
-        if use_conv:
-            self.op = nn.Conv3d(channels, channels, kernel_size=3, stride=2, padding=1)
-        else:
-            # self.op = nn.AvgPool3d(kernel_size=2, stride=2)
-            self.op = nn.MaxPool3d(kernel_size=2, stride=2)
+        mid_channels = out_channels
+        self.down = nn.AvgPool3d(kernel_size=2, stride=2)
+        self.conv = nn.Sequential(
+            nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(mid_channels),
+            nn.SiLU(),
+            nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.SiLU()
+        )
 
     def forward(self, x):
-        return self.op(x)
+        return self.conv(self.down(x))
 
 
 class UnetModel(nn.Module):
     def __init__(self,
                  in_channels=3,
-                 model_channels=128,
+                 model_channels=64,
                  out_channels=3,
                  num_res_blocks=2,
-                 attention_resolutions=(8, 16),
+                 attention_resolutions=(16,),
                  dropout=0,
-                 channel_mult=(1, 2, 2, 2),
-                 conv_resample_up=True,
-                 conv_resample_down=False,
+                 channel_mult=(1, 2, 2, 2, 2),
+                 conv_resample=True,
                  num_heads=4,
                  num_mod=10
                  ):
@@ -181,6 +186,7 @@ class UnetModel(nn.Module):
         self.attention_resolutions = attention_resolutions
         self.dropout = dropout
         self.channel_mult = channel_mult
+        self.conv_resample = conv_resample
         self.num_heads = num_heads
         self.num_mod = num_mod
 
@@ -196,25 +202,31 @@ class UnetModel(nn.Module):
         class_emb_dim = model_channels
         self.class_emb = nn.Embedding(num_mod, class_emb_dim)
 
+        # input layers
+        self.input_layers = TimestepEmbedSequential(nn.Conv3d(in_channels, model_channels, kernel_size=3, padding=1))
+
         # down blocks
-        self.down_blocks = nn.ModuleList([
-            TimestepEmbedSequential(nn.Conv3d(in_channels, model_channels, kernel_size=3, padding=1))
-        ])
-        down_block_channels = [model_channels]
+        self.down_features = nn.ModuleList([])
+        self.down_blocks = nn.ModuleList([])
+        down_block_channels = []
         ch = model_channels
         ds = 1
         for level, mult in enumerate(channel_mult):
-            for _ in range(num_res_blocks):
-                layers = [Residual_block(ch, model_channels * mult, time_emb_dim, class_emb_dim, dropout)]
-                ch = model_channels * mult
+            layers = []
+            for i in range(num_res_blocks):
+                # res block
+                layers.append(Residual_block(ch, ch, time_emb_dim, class_emb_dim, dropout))
+                # attn block
                 if ds in attention_resolutions:
                     layers.append(AttentionBlock(ch, num_heads))
-                self.down_blocks.append(TimestepEmbedSequential(*layers))
-                down_block_channels.append(ch)
-            if level != len(channel_mult) - 1:  # don't use downsample for the last stage
-                self.down_blocks.append(TimestepEmbedSequential(Downsample(ch, conv_resample_down)))
-                down_block_channels.append(ch)
-                ds *= 2
+                if i == num_res_blocks - 1:
+                    down_block_channels.append(ch)
+                    # down block
+                    self.down_blocks.append(TimestepEmbedSequential(Downsample(ch, ch * mult)))
+                    ds *= 2
+                    ch *= mult
+            self.down_features.append(TimestepEmbedSequential(*layers))
+
 
         # middle blocks
         self.middle_blocks = TimestepEmbedSequential(
@@ -224,19 +236,22 @@ class UnetModel(nn.Module):
         )
 
         # up blocks
+        self.up_features = nn.ModuleList([])
         self.up_blocks = nn.ModuleList([])
         for level, mult in enumerate(channel_mult[::-1]):
-            for i in range(num_res_blocks + 1):
-                layers = [
-                    Residual_block(ch + down_block_channels.pop(), model_channels * mult, \
-                                   time_emb_dim, class_emb_dim, dropout)]
-                ch = model_channels * mult
-                if ds in attention_resolutions:
-                    layers.append(AttentionBlock(ch, num_heads))
-                if level != len(channel_mult) - 1 and i == num_res_blocks:
-                    layers.append(Upsample(ch, conv_resample_up))
+            layers = []
+            for i in range(num_res_blocks):
+                # up blcok
+                if i == 0:
+                    self.up_blocks.append(Upsample(ch, ch // mult))
                     ds //= 2
-                self.up_blocks.append(TimestepEmbedSequential(*layers))
+                    ch //= mult
+                # res block
+                layers.append(Residual_block(ch + down_block_channels.pop() if i == 0 else ch, ch, time_emb_dim, class_emb_dim, dropout))
+                if ds in attention_resolutions:
+                    # attn block
+                    layers.append(AttentionBlock(ch, num_heads))
+            self.up_features.append(TimestepEmbedSequential(*layers))
 
         self.out = nn.Sequential(
             norm_layer(ch),
@@ -259,35 +274,19 @@ class UnetModel(nn.Module):
         c_emb = self.class_emb(c)
 
         # down stage
-        h = x
-        for module in self.down_blocks:
-            h = module(h, t_emb, c_emb, mask)
-            #             print(h.shape)
+        h = self.input_layers(x)
+        for down_fea, down in zip(self.down_features, self.down_blocks):
+            h = down_fea(h, t_emb, c_emb, mask)
             hs.append(h)
+            h = down(h)
 
         # middle stage
         h = self.middle_blocks(h, t_emb, c_emb, mask)
 
         # up stage
-        for module in self.up_blocks:
-            #             print(h.shape, hs[-1].shape)
-            cat_in = torch.cat([h, hs.pop()], dim=1)
-            h = module(cat_in, t_emb, c_emb, mask)
+        for up_fea, up in zip(self.up_features, self.up_blocks):
+            h = torch.cat([up(h), hs.pop()], dim=1)
+            h = up_fea(h, t_emb, c_emb, mask)
 
         return self.out(h)
-
-
-if __name__ == "__main__":
-    batch_size = 1
-    p_uncound = 0.2
-
-    net = UnetModel().cuda()
-    x = torch.randn((batch_size, 3, 56, 56, 56)).cuda()
-    t = torch.randint(0, 1000, (batch_size,)).long().cuda()
-    c = torch.randint(0, 10, (batch_size,)).long().cuda()
-    batch_mask = (torch.rand(batch_size) > p_uncound).int().cuda()
-
-    out = net(x, t, c, batch_mask)
-    print(out.shape)
-
-
+        
