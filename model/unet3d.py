@@ -168,7 +168,8 @@ class UnetModel(nn.Module):
                  attention_resolutions=(8, 16),
                  dropout=0,
                  channel_mult=(1, 2, 2, 2),
-                 conv_resample=False,
+                 conv_resample_up=True,
+                 conv_resample_down=False,
                  num_heads=4,
                  num_mod=10
                  ):
@@ -180,7 +181,6 @@ class UnetModel(nn.Module):
         self.attention_resolutions = attention_resolutions
         self.dropout = dropout
         self.channel_mult = channel_mult
-        self.conv_resample = conv_resample
         self.num_heads = num_heads
         self.num_mod = num_mod
 
@@ -212,7 +212,7 @@ class UnetModel(nn.Module):
                 self.down_blocks.append(TimestepEmbedSequential(*layers))
                 down_block_channels.append(ch)
             if level != len(channel_mult) - 1:  # don't use downsample for the last stage
-                self.down_blocks.append(TimestepEmbedSequential(Downsample(ch, conv_resample)))
+                self.down_blocks.append(TimestepEmbedSequential(Downsample(ch, conv_resample_down)))
                 down_block_channels.append(ch)
                 ds *= 2
 
@@ -234,7 +234,7 @@ class UnetModel(nn.Module):
                 if ds in attention_resolutions:
                     layers.append(AttentionBlock(ch, num_heads))
                 if level != len(channel_mult) - 1 and i == num_res_blocks:
-                    layers.append(Upsample(ch, conv_resample))
+                    layers.append(Upsample(ch, conv_resample_up))
                     ds //= 2
                 self.up_blocks.append(TimestepEmbedSequential(*layers))
 
