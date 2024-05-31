@@ -6,20 +6,18 @@ def parse_arguments():
     # data
     parser.add_argument('--data-path', type=str, required=True, help="path to the data files")
     parser.add_argument('--n-workers', type=int, default=8, help="number of workers in data loader")
-    parser.add_argument('--mri_ratio', type=float, default=4, help="ratio for mri down-sampling")
-    # (192, 192, 144); 192 / 4 = 48, 144 / 4 = 36       ->   36 / 4 = 9          ok
-    # (192, 192, 144); 192 / 4.8 = 40, 144 / 4.8 = 30   ->   30 / 4 = 7.5!!!     x
+    parser.add_argument('--mri_ratio', type=float, default=1.5, help="ratio for mri down-sampling")
 
     # diffusion model
     parser.add_argument('-t', '--timestep', type=int, default=1000, help="number of timesteps for diffusion process")
     parser.add_argument('-sche', '--beta_schedule', type=str, choices={'linear', 'sigmoid', 'cosine'}, default='cosine', help="diffusion scheduler")
 
     # Unet model
-    parser.add_argument('-d', '--dim', type=int, default=128, help="number of feature dimensions")
+    parser.add_argument('-d', '--dim', type=int, default=64, help="number of feature dimensions")
     parser.add_argument('--num_heads', type=int, default=4, help="number of attention heads")
-    parser.add_argument('--attn_res', type=str, default='(8, 16)', help='where the attention layers placed in the Unet.'
+    parser.add_argument('--attn_res', type=str, default='(16, )', help='where the attention layers placed in the Unet.'
                                                                         'We have 4 blocks, the resolution is (1, 2, 4, 8), respectively')
-    parser.add_argument('--channel_mult', type=str, default='(1, 2, 2, 2)', help='multiple ratio of channels for 4 blocks in Unet')
+    parser.add_argument('--channel_mult', type=str, default='(1, 2, 2, 2, 2)', help='multiple ratio of channels for 4 blocks in Unet')
     parser.add_argument('--num_mod', type=int, default=4, help="number of modalities")
 
     # training
