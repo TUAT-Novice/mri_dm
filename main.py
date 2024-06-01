@@ -147,7 +147,7 @@ if __name__ == "__main__":
                         f_ax = fig.add_subplot(gs[n_row, n_col])
                         f_ax.imshow((imgs[n_row, n_col] + 1.0) * 255 / 2, cmap="gray")
                         f_ax.axis("off")
-                plt.savefig(os.path.join(args.image_path, f'DDIM_w={2.0}_all.png'))
+                plt.savefig(os.path.join(args.image_path, f'DDIM_w={2.0}_epoch={epoch}.png'))
                 torch.save(model, args.model_path + f'mri_dm_epoch={epoch}.h5')
             
         if (epoch + 1) == args.epoch:
