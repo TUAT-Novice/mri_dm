@@ -124,6 +124,8 @@ if __name__ == "__main__":
                     scaler.step(optimizer)
                     scaler.update()
                     optimizer.zero_grad(set_to_none=True)
+            if args.lr_opt != 'Off':
+                scheduler.step()
         if (epoch + 1) % 10 == 0:
             with torch.no_grad():
                 # generate
