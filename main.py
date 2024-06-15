@@ -38,7 +38,7 @@ if __name__ == "__main__":
         os.mkdir(args.model_path)
 
     # ddp
-    dist.init_process_group(backend='nccl', rank=args.device_id)
+    dist.init_process_group(backend='nccl' if dist.is_nccl_available() else 'gloo', rank=args.device_id)
 
     # dataset
     transform = [tio.ToCanonical(), tio.CropOrPad(target_shape=(192, 192, 144))]
@@ -104,6 +104,8 @@ if __name__ == "__main__":
             for step, subjs_batch in enumerate(data_loader):
                 images, _, _ = load_subjs_batch(subjs_batch)
                 B, M, H, W, D = images.shape
+                # break
+
                 assert M == args.num_mod, f"Except number of modalities args.num_mod = {args.num_mod}, but get {M}"
                 labels = torch.randint(size=(B,), low=0, high=args.num_mod)
                 index = labels[:, None, None, None, None].repeat(1, 1, H, W, D)
@@ -130,6 +132,7 @@ if __name__ == "__main__":
             with torch.no_grad():
                 # generate
                 n_sample = 4
+
                 ddim_step = 50
                 ddim_all = []
                 for i in range(n_sample):
@@ -141,6 +144,13 @@ if __name__ == "__main__":
                 ddim_all = np.swapaxes(ddim_all, 0, 1)  # (ddim_step + 1, n_sample, num_mod, 1, H, W, D)
                 medium_axis = D // 2
                 imgs = ddim_all[-1].reshape(n_sample, args.num_mod, H, W, D)[..., medium_axis] # (ddim_step + 1, n_sample, num_mod, 1, H, W)
+
+                # # plot raw data
+                # imgs = [dataset[i] for i in range(n_sample)]
+                # medium_axis = D // 2
+                # imgs = [np.array(i[j]['data']).reshape(1, 1, H, W, D)[..., medium_axis] for i in imgs for j in ['t1', 't1ce', 't2', 'flair']]
+                # imgs = np.concatenate(imgs, axis=0).reshape(n_sample, args.num_mod, H, W)
+
                 # plot
                 fig = plt.figure(figsize=(12, 5), constrained_layout=True)
                 gs = fig.add_gridspec(n_sample, args.num_mod)
@@ -151,6 +161,6 @@ if __name__ == "__main__":
                         f_ax.axis("off")
                 plt.savefig(os.path.join(args.image_path, f'DDIM_w={2.0}_epoch={epoch}.png'))
                 torch.save(model, args.model_path + f'mri_dm_epoch={epoch}.h5')
-            
+        
         if (epoch + 1) == args.epoch:
             torch.save(model, args.model_path + 'mri_dm_last.h5')
