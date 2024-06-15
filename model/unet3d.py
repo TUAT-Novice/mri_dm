@@ -48,7 +48,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
 
 
 def norm_layer(channels):
-    return nn.GroupNorm(32, channels)
+    return nn.GroupNorm(16, channels)
 
 
 # Residual block
@@ -137,9 +137,9 @@ class Upsample(nn.Module):
             nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(mid_channels),
             nn.SiLU(),
-            # nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
-            # nn.BatchNorm3d(out_channels),
-            # nn.SiLU()
+            nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.SiLU()
         )
 
     def forward(self, x):
@@ -156,9 +156,9 @@ class Downsample(nn.Module):
             nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(mid_channels),
             nn.SiLU(),
-            # nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
-            # nn.BatchNorm3d(out_channels),
-            # nn.SiLU()
+            nn.Conv3d(mid_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm3d(out_channels),
+            nn.SiLU()
         )
 
     def forward(self, x):
@@ -231,7 +231,7 @@ class UnetModel(nn.Module):
         # middle blocks
         self.middle_blocks = TimestepEmbedSequential(
             Residual_block(ch, ch, time_emb_dim, class_emb_dim, dropout),
-            # AttentionBlock(ch, num_heads),
+            AttentionBlock(ch, num_heads),
             Residual_block(ch, ch, time_emb_dim, class_emb_dim, dropout)
         )
 
@@ -287,6 +287,4 @@ class UnetModel(nn.Module):
         for up_fea, up in zip(self.up_features, self.up_blocks):
             h = torch.cat([up(h), hs.pop()], dim=1)
             h = up_fea(h, t_emb, c_emb, mask)
-
         return self.out(h)
-        
