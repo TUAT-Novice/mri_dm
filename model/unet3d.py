@@ -151,7 +151,7 @@ class Downsample(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         mid_channels = out_channels
-        self.down = nn.AvgPool3d(kernel_size=2, stride=2)
+        self.down = nn.MaxPool3d(kernel_size=2, stride=2) # nn.AvgPool3d(kernel_size=2, stride=2)
         self.conv = nn.Sequential(
             nn.Conv3d(in_channels, mid_channels, kernel_size=3, padding=1),
             nn.BatchNorm3d(mid_channels),
