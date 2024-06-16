@@ -140,12 +140,12 @@ if __name__ == "__main__":
         if args.lr_opt != 'Off':
             scheduler.step()
 
-        if (epoch + 1) % 1 == 0:
+        if (epoch + 1) % 50 == 0:
             if args.local_rank == 0:
                 model.eval()
                 # generate
-                n_sample = 1
-                ddim_step = 2
+                n_sample = 3
+                ddim_step = 50
                 ddim_all = []       
                 for i in range(n_sample):
                     ddims = gaussian_diffusion.ddim_sample(model.module, image_size=(1, H, W, D), batch_size=args.num_mod, ddim_timesteps=ddim_step,
