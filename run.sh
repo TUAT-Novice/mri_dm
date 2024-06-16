@@ -1,3 +1,5 @@
+export MASTER_PORT=1425
+
 export nproc_per_node=4
 export nnodes=1
 export node_rank=0
